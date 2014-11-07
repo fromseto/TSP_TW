@@ -278,7 +278,7 @@ static void usage(void)
 Solution VIG_VNS(Solution s0);
 Solution VNS_1_OPT(Solution s);
 Solution DestructConstruct(Solution s, int d);
-bool lex_s1_greater_than_s(Solution s, Solution s2);
+bool lex_s1_greater_than_s2(Solution s1, Solution s2);
 Solution Backward_1_OPT(Solution s);
 Solution Forward_1_OPT(Solution s);
 bool isFeasible(int i, int j, Solution s);
@@ -301,6 +301,7 @@ int main(int argc, char **argv)
     
     s = VIG_VNS(s);
     
+    s.evaluate();
     s.print_one_line();
     printf ("\n");
     
@@ -316,8 +317,8 @@ Solution VIG_VNS(Solution s0)
     
     // decide to use number of iterations
     int index = 0;
-    while (index < 100) {
-
+    while (index < 10000) {
+        
         int k = 1;
         
         while (k < kmax) {
@@ -325,11 +326,13 @@ Solution VIG_VNS(Solution s0)
             Solution s1 = DestructConstruct(s, d);
             Solution s2 = VNS_1_OPT(s1);
             
-            if (lex_s1_greater_than_s(s, s2))
+//            if (lex_s1_greater_than_s2(s, s2))
+            if (lex_s1_greater_than_s2(s2, s))
             {
                 k = 1;
                 s = s2;
-                if (lex_s1_greater_than_s(s_best, s))
+//                if (lex_s1_greater_than_s2(s_best, s))
+                if (lex_s1_greater_than_s2(s, s_best))
                 {
                     s_best = s;
                 }
@@ -338,7 +341,7 @@ Solution VIG_VNS(Solution s0)
                 k = k + 1;
             }
         }
-
+        
         index++;
     }
     
@@ -358,7 +361,8 @@ Solution VNS_1_OPT(Solution s)
         if (k == 2)
             s1 = Forward_1_OPT(s);
         
-        if(lex_s1_greater_than_s(s, s1)) {
+        if(lex_s1_greater_than_s2(s1, s)) {
+//        if(lex_s1_greater_than_s2(s, s1)) {
             k = 1;
             choice = s1;
         }
@@ -379,9 +383,9 @@ Solution Backward_1_OPT(Solution s)
         
         // erase the ith element (1,2,3,4, .....)
         int node_removed = s.permutation.at(i-1);
-//        s.permutation.erase(s.permutation.begin()+i-1);
-//        cout << "new slotion size = " << s.permutation.size() << endl;
-//        cout << "old slotion size = " << old_solution.permutation.size() << endl;
+        //        s.permutation.erase(s.permutation.begin()+i-1);
+        //        cout << "new slotion size = " << s.permutation.size() << endl;
+        //        cout << "old slotion size = " << old_solution.permutation.size() << endl;
         // s.print_one_line();
         
         for (int j = i-1; j >= 1; j--)
@@ -392,13 +396,14 @@ Solution Backward_1_OPT(Solution s)
             // cout << "gain = " << gain << endl;
             if (gain < 0 && isFeasible(i, j, s)) // and is feasible (i, j) ???????????????
             {
-//                s.print_one_line();
-//                s.permutation.insert(s.permutation.begin() + j - 1, node_removed);
-//                cout << "new slotion size = " << s.permutation.size() << endl;
-//                s.print_one_line();
+                //                s.print_one_line();
+                //                s.permutation.insert(s.permutation.begin() + j - 1, node_removed);
+                //                cout << "new slotion size = " << s.permutation.size() << endl;
+                //                s.print_one_line();
                 insert(s, i, j);
                 
-                if (lex_s1_greater_than_s(old_solution, s))
+//                if (lex_s1_greater_than_s2(old_solution, s))
+                if (lex_s1_greater_than_s2(s, old_solution))
                 {
                     return s;
                 }
@@ -425,7 +430,7 @@ Solution Forward_1_OPT(Solution s)
         
         // erase the ith element (1,2,3,4, .....)
         int node_removed = s.permutation.at(i-1);
-//        s.permutation.erase(s.permutation.begin()+i-1);
+        //        s.permutation.erase(s.permutation.begin()+i-1);
         
         for (int j = i+1; j <= s.n - 1; j++)
         {
@@ -433,23 +438,24 @@ Solution Forward_1_OPT(Solution s)
             int gain = add - remove;
             if (gain < 0 && isFeasible(i, j, s)) // and is feasible (i, j) ???????????????
             {
-//                s.permutation.insert(s.permutation.begin() + j - 1, node_removed);
+                //                s.permutation.insert(s.permutation.begin() + j - 1, node_removed);
                 insert(s, i, j);
-                if (lex_s1_greater_than_s(old_solution, s))
+//                if (lex_s1_greater_than_s2(old_solution, s))
+                if (lex_s1_greater_than_s2(s, old_solution))
                 {
                     return s;
                 }
             }
         }
     }
-    return old_solution; 
+    return old_solution;
 }
 
 // lexicographic order s1 is greater than s2
 // 1. s1 feasible, s2 infeasible
 // 2. s1 has smaller objective, if both feasible
 // 3. s1 has less number of violations, if both infeasbile
-bool lex_s1_greater_than_s(Solution s1, Solution s2) {
+bool lex_s1_greater_than_s2(Solution s1, Solution s2) {
     s1.evaluate();
     s2.evaluate();
     
@@ -476,6 +482,119 @@ bool isFeasible(int i, int j, Solution s) {
     return false;
 }
 
+// int transformIfInB(const std::vector<int>& B, int ptr)
+// {
+//   return find(B.begin(),B.end(), ptr) != B.end() ? 0 : ptr;
+// }
+// void shuffle(int *arr, size_t n)
+// {
+//     if (n > 1)
+//     {
+//         size_t i;
+//         srand(time(NULL));
+//         for (i = 0; i < n - 1; i++)
+//         {
+//           size_t j = i + rand() / (RAND_MAX / (n - i) + 1);
+//           int t = arr[j];
+//           arr[j] = arr[i];
+//           arr[i] = t;
+//         }
+//     }
+// }
+
+
 Solution DestructConstruct(Solution s, int d) {
+    Solution old_solution = s;
+    int max = s.n - 1;
+    int min = 1;
+    std::vector<int> removed;
+    std::vector<int> deducted;
+    std::vector<int> origin = s.permutation;
+    
+    removed.clear();
+    
+//    cout << "d = " << d << endl;
+    
+    // get vector of removed elements randomly choose
+    srand(time(NULL)); // Seed the time
+    while(removed.size() <= d) {
+        // Generate the number, assign to variable.
+        int index = rand()%(max-min)+min;
+        
+        int target = old_solution.permutation[index];
+        bool isPresent = (std::find(removed.begin(), removed.end(), target) != removed.end());
+        if (!isPresent)
+            removed.push_back(target);
+    }
+    
+//    for (int i = 0; i < removed.size(); ++i)
+//    {
+//        cout << removed[i] << " ";
+//    }
+//    cout << endl;
+    
+    // get solution without removed elements
+    for (int i = 0; i < removed.size(); ++i)
+    {
+        origin.erase(std::remove(origin.begin(), origin.end(), removed[i]), origin.end());
+    }
+    
+    
+    // cout << "origin = " << endl;
+//    for (int i = 0; i < origin.size(); ++i)
+//    {
+//        cout << origin[i] << " ";
+//    }
+//    cout << endl;
+    
+    for (int i = 0; i < removed.size(); ++i)
+    {
+        // add one element back to orgin
+        int position = origin.size() + 1;
+        int best_postion_cost = 0;
+        int best_postion = 0;
+        
+        // find best postion
+        for (int j = 1; j < position-1; ++j)
+        {
+            std::vector<int> tmp = origin;
+            
+            int tour_cost = 0;
+            
+            tmp.insert(tmp.begin() + j, removed[i]);
+            
+            int m = 0;
+            while (m < origin.size())
+            {
+                tour_cost = tour_cost + tmp[m];
+                m++;
+            }
+            
+            if(j == 1) {
+                best_postion_cost = tour_cost;
+                best_postion = 1;
+            }
+            
+            else if(tour_cost < best_postion_cost) {
+                best_postion_cost = tour_cost;
+                best_postion = j;
+            }
+        }
+//        cout << "best postion is " << best_postion<< " insert " << removed[i] << endl;
+        origin.insert(origin.begin() + best_postion, removed[i]);
+        
+//        for (int i = 0; i < origin.size(); ++i)
+//        {
+//            cout << origin[i] << " ";
+//        }
+//        cout << endl;
+    }
+    
+//    cout << "best postion finded:" << endl;
+//    for (int i = 0; i < origin.size(); ++i)
+//    {
+//        cout << origin[i] << " ";
+//    }
+    s.permutation = origin;
     return s;
 }
