@@ -279,7 +279,7 @@ static void usage(void)
 // and destruct and construct way of heuristics
 Solution VIG_VNS(Solution s0);
 Solution VNS_1_OPT(Solution s);
-Solution DestructConstruct(Solution s, int d);
+Solution DestructConstruct(Solution s, int d, int iteration);
 bool lex_s1_greater_than_s2(Solution s1, Solution s2);
 Solution Backward_1_OPT(Solution s);
 Solution Forward_1_OPT(Solution s);
@@ -317,19 +317,19 @@ Solution VIG_VNS(Solution s0)
     Solution s = VNS_1_OPT(s0);
     Solution s_best = s;
     s_best.evaluate();
-    cout << "does VNS_1_OPT really work" << " ";
+    // cout << "does VNS_1_OPT really work" << " ";
     s_best.print_one_line();
     
     // decide to use number of iterations
     int index = 0;
-    while (index < 80000) {
+    while (index < 5000) {
         // cout << "------------In loop " << index << "--------------" << endl;
         int k = 1;
         
         while (k <= kmax) {
             // cout << "k = " << k << endl;
             int d = k*5;
-            Solution s1 = DestructConstruct(s, d);
+            Solution s1 = DestructConstruct(s, d, index);
             Solution s2 = VNS_1_OPT(s1);
             
             s1.evaluate();
@@ -343,11 +343,13 @@ Solution VIG_VNS(Solution s0)
             {
                 k = 1;
                 s = s2;
+                s.evaluate();
                 //                if (lex_s1_greater_than_s2(s_best, s))
                 if (lex_s1_greater_than_s2(s, s_best))
                 {
                     s_best = s;
                     s_best.evaluate();
+                    cout << "------------------LOOP " << index << " -------------" <<endl;
                     s_best.print_one_line();
                 }
             }
@@ -397,13 +399,14 @@ Solution VNS_1_OPT(Solution s)
 
 Solution Backward_1_OPT(Solution s)
 {
+    // cout << "In Backward_1_OPT" << endl;
     Solution old_solution = s;
     // for(int i = s.n - 2; i >= 2; i--) {
     for(int i = s.n - 1; i >= 2; i--) {
-       int remove = s.distance[i-1][i] + s.distance[i][i+1] + s.distance[i-1][i+1];
-        // int remove = s.distance[s.permutation[i-1]][s.permutation[i]] +
-        //              s.distance[s.permutation[i]][s.permutation[i+1]] +
-        //              s.distance[s.permutation[i-1]][s.permutation[i+1]];
+       // int remove = s.distance[i-1][i] + s.distance[i][i+1] - s.distance[i-1][i+1];
+        int remove = s.distance[s.permutation[i-1]][s.permutation[i]] +
+                     s.distance[s.permutation[i]][s.permutation[i+1]] -
+                     s.distance[s.permutation[i-1]][s.permutation[i+1]];
         // int remove = s.distance.at(i-1).at(i);
         // int remove = s.distance[i-1][i];
         
@@ -416,32 +419,45 @@ Solution Backward_1_OPT(Solution s)
         
         for (int j = i-1; j >= 1; j--)
         {
-           int add = s.distance[j-1][i] + s.distance[i][j] + s.distance[j-1][j];
-            // int add = s.distance[s.permutation[j-1]][s.permutation[i]] +
-            // s.distance[s.permutation[i]][s.permutation[j]] +
-            // s.distance[s.permutation[j-1]][s.permutation[j]];
+            
+           // int add = s.distance[j-1][i] + s.distance[i][j] - s.distance[j-1][j];
+            int add = s.distance[s.permutation[j-1]][s.permutation[i]] +
+            s.distance[s.permutation[i]][s.permutation[j]] -
+            s.distance[s.permutation[j-1]][s.permutation[j]];
             int gain = add - remove;
+            // if (i == 20 && j == 14)
+            // {
+            //     cout << "test now"<< " gain =  " << gain << endl;
+            //     cout << "permutation[i] = " << s.permutation[i] << " permutation[j] = " << s.permutation[j] << endl;
+            // }
             
             // cout << "gain = " << gain << endl;
-            if (gain < 0 && isFeasible(i, j, s)) // and is feasible (i, j) ???????????????
+            if (isFeasible(i, j, s)) // and is feasible (i, j) ???????????????
             {
                 //                s.print_one_line();
                 //                s.permutation.insert(s.permutation.begin() + j - 1, node_removed);
                 //                cout << "new slotion size = " << s.permutation.size() << endl;
                 //                s.print_one_line();
+                // cout << "i = " << i << " j = " << j << endl;
                 Solution s1 = insert(s, i, j);
-                
+                s1.evaluate();
                 //                if (lex_s1_greater_than_s2(old_solution, s))
                 if (lex_s1_greater_than_s2(s1, s))
                 {
                     // return s;
+                    // cout << "-----------------------------------" << endl;
+                    // s.print_one_line();
+                    // s1.print_one_line();
                     // cout << "Backword works~~~~~~~~~~~~~~~~" << endl;
                     s = s1;
+                    s.evaluate();
+                    return s;
                 }
             }
         }
         // s = old_solution;
     }
+    s.evaluate();
     return s;
 }
 
@@ -449,21 +465,24 @@ Solution insert(Solution s, int i, int j)
 {
     Solution s1 = s;
     int node_removed = s1.permutation.at(i);
+    assert(node_removed == s1.permutation[i]);
     s1.permutation.erase(s1.permutation.begin()+i);
     s1.permutation.insert(s1.permutation.begin() + j, node_removed);
+    s1.evaluate();
     return s1;
 }
 
 Solution Forward_1_OPT(Solution s)
 
 {
+    // cout << "in Forward_1_OPT" << endl;
     Solution old_solution = s;
     // for(int i = 2; i <= s.n - 2; i++) {
     for(int i = 1; i <= s.n - 2; i++) {
-       int remove = s.distance[i-1][i] + s.distance[i][i+1] + s.distance[i-1][i+1];
-        // int remove = s.distance[s.permutation[i-1]][s.permutation[i]] +
-        // s.distance[s.permutation[i]][s.permutation[i+1]] +
-        // s.distance[s.permutation[i-1]][s.permutation[i+1]];
+       // int remove = s.distance[i-1][i] + s.distance[i][i+1] - s.distance[i-1][i+1];
+        int remove = s.distance[s.permutation[i-1]][s.permutation[i]] +
+        s.distance[s.permutation[i]][s.permutation[i+1]] -
+        s.distance[s.permutation[i-1]][s.permutation[i+1]];
         
         // erase the ith element (1,2,3,4, .....)
         int node_removed = s.permutation.at(i-1);
@@ -471,25 +490,32 @@ Solution Forward_1_OPT(Solution s)
         
         for (int j = i+1; j <= s.n - 1; j++)
         {
-           int add = s.distance[i][j+1] + s.distance[j][i] + s.distance[j][j+1];
-            // int add = s.distance[s.permutation[i]][s.permutation[j+1]] +
-            // s.distance[s.permutation[j]][s.permutation[i]] +
-            // s.distance[s.permutation[j]][s.permutation[j+1]];
+           // int add = s.distance[i][j+1] + s.distance[j][i] - s.distance[j][j+1];
+            int add = s.distance[s.permutation[i]][s.permutation[j+1]] +
+            s.distance[s.permutation[j]][s.permutation[i]] -
+            s.distance[s.permutation[j]][s.permutation[j+1]];
             int gain = add - remove;
-            if (gain < 0 && isFeasible(i, j, s)) // and is feasible (i, j) ???????????????
+            if (isFeasible(i, j, s)) // and is feasible (i, j) ???????????????
             {
                 //                s.permutation.insert(s.permutation.begin() + j - 1, node_removed);
                 Solution s1 = insert(s, i, j);
                 //                if (lex_s1_greater_than_s2(old_solution, s))
+                s1.evaluate();
                 if (lex_s1_greater_than_s2(s1, s))
                 {
                     // return s;
+                    // cout << "-----------------------------------" << endl;
+                    // s.print_one_line();
+                    // s1.print_one_line();
                     // cout << "Forword works~~~~~~~~~~~~~~~~" << endl;
                     s = s1;
+                    s.evaluate();
+                    return s;
                 }
             }
         }
     }
+    s.evaluate();
     return s;
 }
 
@@ -512,14 +538,24 @@ bool lex_s1_greater_than_s2(Solution s1, Solution s2) {
     if (s1._constraint_violations != 0 && s2._constraint_violations != 0) {
         if (s1._constraint_violations < s2._constraint_violations)
             return true;
+        // if (s1._constraint_violations <=2) {
+        //     cout << "final djsu s1._tourcost = "<< s1._tourcost << " s2._tourcost = " << s2._tourcost <<endl;
+        //     if (s1._tourcost < s2._tourcost)
+        //     return true;
+        // }
     }
     
     return false;
 }
 
 bool isFeasible(int i, int j, Solution s) {
-    if (s.window_start[j] + s.distance[j][i] <= s.window_end[i] &&
-        s.window_start[i] + s.distance[i][j+1] <= s.window_end[j+1])
+    // if (s.window_start[j] + s.distance[j][i] <= s.window_end[i] &&
+        // s.window_start[i] + s.distance[i][j+1] <= s.window_end[j+1])
+    int i_real = s.permutation[i];
+    int j_real = s.permutation[j];
+
+    if (s.window_start[j_real] + s.distance[j_real][i_real] <= s.window_end[i_real] &&
+        s.window_start[i_real] + s.distance[i_real][s.permutation[j+1]] <= s.window_end[s.permutation[j+1]])
         return true;
     return false;
 }
@@ -545,7 +581,7 @@ bool isFeasible(int i, int j, Solution s) {
 // }
 
 
-Solution DestructConstruct(Solution s, int d) {
+Solution DestructConstruct(Solution s, int d, int iteration) {
     Solution old_solution = s;
     int max = s.n - 2;
     int min = 1;
@@ -560,8 +596,8 @@ Solution DestructConstruct(Solution s, int d) {
     // get vector of removed elements randomly choose
     time_t t;
     
-    srand(time(&t));
-    // srand(time(0)); // Seed the time
+    // srand(time(&t));
+    srand(5*iteration); // Seed the time
     while(removed.size() <= d) {
         // Generate the number, assign to variable.
         int index = rand()%(max-min)+min;
@@ -642,14 +678,21 @@ Solution DestructConstruct(Solution s, int d) {
     //    }
     s.permutation = origin;
     s.evaluate();
+    old_solution.evaluate();
     
-    int NFT_new = s._constraint_violations^10;
-    int NFT_old = old_solution._constraint_violations^10;
+    // int NFT_new = s._constraint_violations^10;
+    // int NFT_old = old_solution._constraint_violations^10;
+    // int obj_new = s._tourcost + NFT_new;
+    // int obj_old = old_solution._tourcost + NFT_old;
+    float NFT = 0.001/(1+0.04*iteration);
+    int alpha = 15;
+    int NFT_new = pow(s._constraint_violations/NFT, alpha);
+    int NFT_old = pow(old_solution._constraint_violations/NFT, alpha);
     int obj_new = s._tourcost + NFT_new;
     int obj_old = old_solution._tourcost + NFT_old;
     
-    return s;
-    // if (obj_new < obj_old)
-    //     return s;
-    // else return old_solution;
+    // return s;
+    if (obj_new < obj_old)
+        return s;
+    else return old_solution;
 }
